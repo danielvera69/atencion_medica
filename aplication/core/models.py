@@ -116,6 +116,8 @@ class Doctor(models.Model):
     email = models.EmailField(verbose_name="Correo", null=True, blank=True)
     # Hora de inicio y fin de atención del doctor
     horario_atencion = models.TextField(verbose_name="Horario de Atencion")
+    # tiempo de atencion en minutos
+    duracion_cita = models.IntegerField(verbose_name="Tiempo de Atencion(minutos)",default=30)
     # Curriculum vitae del doctor en formato de archivo
     curriculum = models.FileField(upload_to='curriculums/', verbose_name="Curriculum Vitae", null=True, blank=True)
     # Firma digital del doctor (imagen o archivo)
@@ -204,11 +206,25 @@ class TipoMedicamento(models.Model):
         verbose_name = "Tipo de Medicamento"
         verbose_name_plural = "Tipos de Medicamentos"
 
+class MarcaMedicamento(models.Model):
+    # Nombre del tipo de medicamento (ej. Analgésico, Antibiótico, etc.)
+    nombre = models.CharField(max_length=100, verbose_name="Marca de Medicamento",unique=True)
+    # Descripción del tipo de medicamento (opcional)
+    descripcion = models.TextField(verbose_name="Descripción", null=True, blank=True)
+ 
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        # Nombre singular y plural del modelo en la interfaz administrativa
+        verbose_name = "Tipo de Medicamento"
+        verbose_name_plural = "Tipos de Medicamentos"
 # Modelo que representa los medicamentos que están disponibles en la clínica.
 # Incluye información sobre el nombre, tipo, y detalles adicionales del medicamento.
 class Medicamento(models.Model):
     # tipo de medicamento
     tipo = models.ForeignKey('TipoMedicamento', on_delete=models.PROTECT, verbose_name="Tipo de Medicamento",related_name="tipos_medicamentos")
+    marca_medicamento = models.ForeignKey(MarcaMedicamento, on_delete=models.PROTECT,verbose_name="Marca",related_name="marca_medicamentos",null=True,blank=True)
     # Descripción del medicamento (opcional)
     nombre = models.CharField(max_length=100,verbose_name="Nombre del Medicamento",db_index=True,unique=True)
     # Descripción del medicamento (opcional)

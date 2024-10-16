@@ -1,6 +1,6 @@
 from django.contrib import admin
 from aplication.core.models import (
-    TipoSangre, Paciente, Especialidad, Doctor, Cargo, Empleado, TipoMedicamento, 
+    MarcaMedicamento, TipoSangre, Paciente, Especialidad, Doctor, Cargo, Empleado, TipoMedicamento, 
     Medicamento, Diagnostico, CategoriaExamen, TipoCategoria
 )
 
@@ -82,6 +82,12 @@ class MedicamentoAdmin(admin.ModelAdmin):
 class DiagnosticoAdmin(admin.ModelAdmin):
     list_display = ('codigo', 'descripcion')
     search_fields = ('codigo', 'descripcion')
+
+# Registro de Diagnostico
+@admin.register(MarcaMedicamento)
+class MarcaMedicamentoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'descripcion')
+    search_fields = ('nombre',)
 
 
 # Registro de CategoriaExamen
