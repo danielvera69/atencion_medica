@@ -37,11 +37,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # apps de usuarios
     'aplication.core.apps.CoreConfig',
     'aplication.attention.apps.AttentionConfig',
     'aplication.security.apps.SecurityConfig',
+    # apps de terceros
+    'django_extensions',
 ]
-
+SHELL_PLUS = "ipython"  # Si tienes IPython instalado, usa esta opción
+SHELL_PLUS_PRINT_SQL = True
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

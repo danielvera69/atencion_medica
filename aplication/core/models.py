@@ -13,8 +13,7 @@ class TipoSangre(models.Model):
         verbose_name_plural = "Tipos de Sangre"
         
     def __str__(self):
-        return self.tipo
-    
+        return self.tipo    
 """ Modelo que representa a los pacientes de la clínica. 
 Almacena información personal, de contacto, ubicación y detalles médicos.
 También incluye información completa de la historia clínica. """
