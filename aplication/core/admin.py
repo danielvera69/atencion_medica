@@ -14,15 +14,12 @@ class TipoSangreAdmin(admin.ModelAdmin):
 # Registro de Paciente
 @admin.register(Paciente)
 class PacienteAdmin(admin.ModelAdmin):
-    list_display = ('nombre_completo', 'cedula', 'fecha_nacimiento', 'sexo', 'estado_civil')
+    list_display = ('nombres', 'apellidos', 'cedula', 'fecha_nacimiento', 'sexo', 'estado_civil')
     search_fields = ('nombres', 'apellidos', 'cedula')
     list_filter = ('sexo', 'estado_civil', 'tipo_sangre')
     ordering = ['apellidos']
 
-    def nombre_completo(self, obj):
-        return obj.nombre_completo()
-    nombre_completo.short_description = "Nombre Completo"
-
+    
 
 # Registro de Especialidad
 @admin.register(Especialidad)

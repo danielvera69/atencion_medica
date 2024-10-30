@@ -5,8 +5,6 @@ from doctor.const import CITA_CHOICES, DIA_SEMANA_CHOICES, EXAMEN_CHOICES
 # Modelo que representa los días y horas de atención de un doctor.
 # Incluye los días de la semana, la hora de inicio y la hora de fin de la atención.
 class HorarioAtencion(models.Model):
-   # Relación con el modelo Doctor, indica qué doctor está disponible en este horario
-    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, verbose_name="Doctor",related_name="doctores")
     # Días de la semana en los que el doctor atiende
     dia_semana = models.CharField(max_length=10, choices=DIA_SEMANA_CHOICES, verbose_name="Día de la Semana",unique=True)
     # Hora de inicio de atención del doctor
@@ -18,8 +16,10 @@ class HorarioAtencion(models.Model):
      # Fin de descanso de atención del doctor
     Intervalo_hasta=models.TimeField(verbose_name="Intervalo Hasta")
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
-        return f"{self.doctor} - {self.dia_semana}"
+        return f"{self.dia_semana}"
 
     class Meta:
         # Nombre singular y plural del modelo en la interfaz administrativa
@@ -28,8 +28,7 @@ class HorarioAtencion(models.Model):
 
 # modelo que almacena los datos de la cita de los pacientes
 class CitaMedica(models.Model):
-    # Relación con el modelo Doctor, indica qué doctor verá al paciente en la cita
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, verbose_name="Doctor",related_name="doctores_citas")
+ 
      # Relación con el modelo Paciente, indica qué paciente ha reservado la cita
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, verbose_name="Paciente",related_name="pacientes_citas")
      # Fecha de la cita médica
@@ -44,7 +43,7 @@ class CitaMedica(models.Model):
     )
 
     def __str__(self):
-        return f"Cita {self.paciente} con {self.doctor} el {self.fecha} a las {self.hora_cita}"
+        return f"Cita {self.paciente} el {self.fecha} a las {self.hora_cita}"
 
     class Meta:
         # Ordena las citas por fecha y hora
@@ -148,6 +147,8 @@ class ServiciosAdicionales(models.Model):
     # Descripción opcional sobre el servicio adicional
     descripcion = models.TextField(null=True, blank=True, verbose_name="Descripción del Servicio")
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre_servicio
 
@@ -169,7 +170,9 @@ class CostosAtencion(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total", default=0.00)
     # Fecha en que se registraron los costos
     fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
-
+    
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return f"Costos para {self.atencion} - Total: {self.total}"
 

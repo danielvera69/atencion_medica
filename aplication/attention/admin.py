@@ -12,15 +12,15 @@ from aplication.attention.models import (
 # Admin para HorarioAtencion
 @admin.register(HorarioAtencion)
 class HorarioAtencionAdmin(admin.ModelAdmin):
-    list_display = ('doctor', 'dia_semana', 'hora_inicio', 'hora_fin')
-    search_fields = ('doctor__first_name', 'doctor__last_name', 'dia_semana')
+    list_display = ('dia_semana', 'hora_inicio', 'hora_fin')
+    search_fields = ('dia_semana',)
 
 # Admin para CitaMedica
 @admin.register(CitaMedica)
 class CitaMedicaAdmin(admin.ModelAdmin):
-    list_display = ('paciente', 'doctor', 'fecha', 'hora_cita', 'estado')
+    list_display = ('paciente', 'fecha', 'hora_cita', 'estado')
     list_filter = ('estado', 'fecha')
-    search_fields = ('paciente__nombre', 'doctor__first_name', 'doctor__last_name')
+    search_fields = ('paciente__nombre',)
 
 # Admin para DetalleAtencion
 class DetalleAtencionInline(admin.TabularInline):

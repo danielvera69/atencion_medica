@@ -4,7 +4,7 @@ CIVIL_CHOICES=[('S', 'Soltero'), ('C', 'Casado'), ('U', 'Union Libre'), ('D', 'D
 DIA_SEMANA_CHOICES = [
         ('lunes', 'Lunes'),
         ('martes', 'Martes'),
-        ('miércoles', 'Miércoles'),
+        ('miercoles', 'Miércoles'),
         ('jueves', 'Jueves'),
         ('viernes', 'Viernes'),
         ('sábado', 'Sábado'),

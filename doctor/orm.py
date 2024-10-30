@@ -3,11 +3,13 @@ from aplication.attention.models import *
 from django.db.models import Q
 from django.db.models import Sum,Avg,Max,Min,Count
 from django.db.models import F
-# insertar registro directamente
-tipo1 = TipoSangre.objects.create(tipo="A+", descripcion="Tipo A positivo")
+# insertar registro directamente en el modelo tiposangre
+tipo1 = TipoSangre.objects.create(tipo="z+", descripcion="Tipo z positivo")
 # crea el registro en memoria
-tipo2 = TipoSangre(tipo="B-", descripcion="Tipo B negativo")
-tipo2.save()  # Y luego con save() lo guarda el registro en la base de datos
+tipo2 = TipoSangre(tipo="y-", descripcion="Tipo y negativo")
+tipo2.descripcion="Tipo y- negativo"
+tipo2.save()
+# Y luego con save() lo guarda el registro en la base de datos
 # Crea una lista de instancias de TipoSangre con varios tipos de sangre
 tipos_sangre = [
     TipoSangre(tipo="B+", descripcion="Tipo B positivo"),
@@ -23,7 +25,7 @@ for tipo in tipos_sangre:
     print(f"Tipo: {tipo.tipo}, Descripción: {tipo.descripcion}")
 
 # Selecciona los tipos de sangre    
-tipo_O_pos = TipoSangre.objects.get(tipo="O+")
+tipo_O_neg = TipoSangre.objects.get(tipo="O-")
 tipo_A = TipoSangre.objects.get(tipo="A")
 tipo_ab_pos = TipoSangre.objects.get(tipo="AB+")
 
@@ -41,7 +43,7 @@ pacientes = [
         direccion="Calle Falsa 123",
         latitud=-0.123456,
         longitud=-78.123456,
-        tipo_sangre=tipo_O_pos,
+        tipo_sangre_id=3,
         alergias="Ninguna",
         enfermedades_cronicas="Hipertensión",
         medicacion_actual="Losartán",
@@ -107,7 +109,7 @@ for paciente in pacientes:
     print(f"Dirección: {paciente.direccion}")
     print(f"Latitud: {paciente.latitud}")
     print(f"Longitud: {paciente.longitud}")
-    print(f"Tipo de Sangre: {paciente.tipo_sangre.tipo if paciente.tipo_sangre else 'No especificado'}")
+    print(f"Tipo de Sangre: {paciente.tipo_sangre.descripcion if paciente.tipo_sangre else 'No especificado'}")
     print(f"Alergias: {paciente.alergias if paciente.alergias else 'Ninguna'}")
     print(f"Enfermedades Crónicas: {paciente.enfermedades_cronicas if paciente.enfermedades_cronicas else 'Ninguna'}")
     print(f"Medicación Actual: {paciente.medicacion_actual if paciente.medicacion_actual else 'Ninguna'}")
@@ -131,7 +133,7 @@ pacientes_o_plus = Paciente.objects.filter(tipo_sangre__tipo="O+")
 # iregex (coincide con expresión regular sin distinguir mayúsculas/minúsculas)
 
 # Consulta pacientes que contengan 'O' en el tipo de sangre. Ejemplo icontains
-pacientes_con_o = Paciente.objects.filter(tipo_sangre__tipo__icontains="O")
+pacientes_con_o = Paciente.objects.filter(tipo_sangre__tipo__icontains="A")
 # Buscar empleados cuyos nombres empiecen con una "y" o "w" sin importar mayúsculas/minúsculas
 empleados_con_yw = Paciente.objects.filter(nombres__iregex=r'^[yw]')
 # funciones de fecha del orm
@@ -158,10 +160,12 @@ pacientes_menor_2024=list(pacientes_menor_2024)
 pacientes_ab = Paciente.objects.filter(tipo_sangre__tipo="AB+").values('nombres', 'apellidos', 'tipo_sangre__descripcion')
 # Obtener los tipos de sangre "AB+" y los nombres de los pacientes asociados
 tipos_sangre_ab = TipoSangre.objects.filter(tipo="AB+").values('descripcion', 'tipos_sangre__nombres', 'tipos_sangre__apellidos')
+# relacion d epaciente normal con tiposangre
+Paciente.objects.filter(tipo_sangre__tipo__icontains="Ab+").values("nombres","tipo_sangre")
 # consulta inversa
 # Obtener el tipo de sangre "AB+"
 tipo_sangre_ab = TipoSangre.objects.get(tipo="AB+")
-# Obtener todos los pacientes que tienen este tipo de sangre
+# Obtener todos los pacientes que tienen este tipo de sangre ab+
 pacientes_con_ab = tipo_sangre_ab.tipos_sangre.all()
 # Consulta con AND
 pacientes = Paciente.objects.filter(fecha_nacimiento__year=1980, tipo_sangre__tipo="O+")
@@ -221,13 +225,21 @@ resultados = Empleado.objects.filter(cargo__descripcion__icontains="Enfermera").
 )
 # agrupar campos de una tabla
 # Realizar la consulta de agregados agrupados por cargo
-resultados = Empleado.objects.values('cargo__nombre').annotate(
+resultados = Empleado.objects.values('tipo').annotate(
     total_sueldo=Sum('sueldo'),
     promedio_sueldo=Avg('sueldo'),
     max_sueldo=Max('sueldo'),
     min_sueldo=Min('sueldo'),
     cantidad_empleados=Count('id')
 )
+# {'total_sueldo': Decimal('2200'),
+#  'promedio_sueldo': Decimal('1100'),
+#  'max_sueldo': Decimal('1650.00000000000'),
+#  'max_sueldo': Decimal('1650.00000000000'),
+#  'min_sueldo': Decimal('550'),
+#  'cantidad_enfermeras': 2}
+
+
 #Realizar la consulta de agregados agrupados por cargo y sueldo
 resultados = Empleado.objects.values('cargo__nombre', 'sueldo').annotate(
     cantidad_empleados=Count('id')

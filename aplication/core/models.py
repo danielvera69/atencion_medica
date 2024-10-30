@@ -1,5 +1,10 @@
+from datetime import date
 from django.db import models
 from doctor.const import CIVIL_CHOICES, SEX_CHOICES
+from django.contrib.auth.models import User
+from doctor.utils import valida_cedula,phone_regex
+
+      
 """Modelo que representa los diferentes tipos de sangre.
 Se gestiona como un modelo separado para mantener flexibilidad
 y permitir futuras actualizaciones."""
@@ -13,7 +18,17 @@ class TipoSangre(models.Model):
         verbose_name_plural = "Tipos de Sangre"
         
     def __str__(self):
-        return self.tipo    
+        return self.tipo 
+    
+# Este método redefine el comportamiento del método get_queryset 
+# del manager base para aplicar un filtro que devuelve solo los 
+# registros donde el campo 'active' es True.
+class ActivePatientManager(models.Manager):
+    # Método para obtener un queryset de pacientes activos
+    def get_queryset(self):
+        # Retorna un queryset que solo incluye los pacientes que están activos.   
+        return super().get_queryset().filter(active=True)
+               
 """ Modelo que representa a los pacientes de la clínica. 
 Almacena información personal, de contacto, ubicación y detalles médicos.
 También incluye información completa de la historia clínica. """
@@ -23,13 +38,14 @@ class Paciente(models.Model):
     nombres = models.CharField(max_length=100, verbose_name="Nombres")
     apellidos = models.CharField(max_length=100, verbose_name="Apellidos")
     # Cédula de identidad del paciente, debe ser única
-    cedula = models.CharField(max_length=10, unique=True, verbose_name="Cédula")
+    cedula = models.CharField(max_length=10, verbose_name="Cédula",validators=[valida_cedula])
+    
     # Fecha de nacimiento del paciente
     fecha_nacimiento = models.DateField(verbose_name="Fecha de Nacimiento")
     # Número de teléfono de contacto del paciente
-    telefono = models.CharField(max_length=20, verbose_name="Teléfono(s)")
+    telefono = models.CharField(max_length=20, verbose_name="Teléfono(s)",validators=[phone_regex])
     # Correo electrónico del paciente, puede ser nulo o estar vacío
-    email = models.EmailField(verbose_name="Correo", null=True, blank=True)
+    email = models.EmailField(verbose_name="Correo", null=True, blank=True,unique=True)
     # Sexo del paciente (Masculino o Femenino)
     sexo = models.CharField(max_length=1, choices=SEX_CHOICES, verbose_name="Sexo")
     # Estado civil del paciente (Soltero, Casado, etc.)
@@ -44,6 +60,8 @@ class Paciente(models.Model):
     # Historia clínica
     # Relación con el modelo TipoSangre, permite seleccionar el tipo de sangre del paciente
     tipo_sangre = models.ForeignKey(TipoSangre, on_delete=models.SET_NULL, null=True, verbose_name="Tipo de Sangre",related_name="tipos_sangre")
+    # foto del paciente
+    foto = models.ImageField(upload_to='pacientes/', verbose_name="Foto", null=True, blank=True)
     # Alergias conocidas del paciente
     alergias = models.CharField(max_length=100,verbose_name="Alergias", null=True, blank=True)
     # Enfermedades crónicas que sufre el paciente
@@ -56,6 +74,11 @@ class Paciente(models.Model):
     antecedentes_personales = models.TextField(verbose_name="Antecedentes Personales", null=True, blank=True)
     # Antecedentes médicos familiares del paciente (enfermedades hereditarias, condiciones genéticas)
     antecedentes_familiares = models.TextField(verbose_name="Antecedentes Familiares", null=True, blank=True)
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
+    objects = models.Manager()  # Manager predeterminado
+    active_patient = ActivePatientManager()  # Manager Personalizado
+   
     class Meta:
         # Define el orden predeterminado de los pacientes por nombre
         ordering = ['apellidos']
@@ -63,12 +86,36 @@ class Paciente(models.Model):
         # Nombre en singular y plural del modelo en la interfaz de administración
         verbose_name = "Paciente"
         verbose_name_plural = "Pacientes"
- 
+    
+    
+    
+    @property
     def nombre_completo(self):
         return f"{self.apellidos} {self.nombres}"
     
+    
     def __str__(self):
         return self.nombres
+    
+    def get_image(self):
+        if self.foto:
+            return self.foto.url
+        else:
+            return '/static/img/usuario_anonimo.png'
+     # Método estático para calcular la edad del paciente
+    @staticmethod
+    def calcular_edad(fecha_nacimiento):
+        today = date.today()  # Obtener la fecha actual
+        edad = today.year - fecha_nacimiento.year  # Calcular la diferencia de años
+        # Ajustar la edad si el cumpleaños de este año no ha ocurrido aún
+        if (today.month, today.day) < (fecha_nacimiento.month, fecha_nacimiento.day):
+            edad -= 1  # Restar un año si el cumpleaños no ha pasado
+        return edad  
+    
+    @staticmethod
+    def cantidad_pacientes():
+       return Paciente.objects.all().count()
+       
 """
 Modelo que representa las diferentes especialidades médicas.
 Cada doctor puede tener una o varias especialidades.
@@ -79,6 +126,8 @@ class Especialidad(models.Model):
     # Descripción de la especialidad (opcional)
     descripcion = models.TextField(verbose_name="Descripción de la Especialidad", null=True, blank=True)
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre
 
@@ -125,13 +174,14 @@ class Doctor(models.Model):
     foto = models.ImageField(upload_to='doctores/', verbose_name="Foto", null=True, blank=True)
     # Imagen que se utilizará en las recetas firmadas por el doctor
     imagen_receta = models.ImageField(upload_to='recetas/', verbose_name="Imagen para Recetas", null=True, blank=True)
-
-    def __str__(self):
-        return f"{self.apellidos}"
-
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
+    @property
     def nombre_completo(self):
         return f"{self.apellidos} {self.nombres}"
     
+    def __str__(self):
+        return f"{self.apellidos}"
     class Meta:
         # Nombre singular y plural del modelo en la interfaz administrativa
         verbose_name = "Doctor"
@@ -145,6 +195,8 @@ class Cargo(models.Model):
     # Descripción del cargo (opcional)
     descripcion = models.TextField(verbose_name="Descripción del Cargo", null=True, blank=True)
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre
 
@@ -176,13 +228,16 @@ class Empleado(models.Model):
     longitud = models.FloatField(verbose_name="Longitud", null=True, blank=True)
     # Fotografía del empleado
     foto = models.ImageField(upload_to='empleados/', verbose_name="Foto del Empleado", null=True, blank=True)
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
+    @property
+    def nombre_completo(self):
+        return f"{self.apellidos} {self.nombres}"
 
     def __str__(self):
         return f"{self.apellidos}"
     
-    def nombre_completo(self):
-        return f"{self.apellidos} {self.nombres}"
-
+    
     class Meta:
         # Ordena los empleados alfabéticamente por apellido y nombre
         # Nombre singular y plural del modelo en la interfaz administrativa
@@ -197,6 +252,8 @@ class TipoMedicamento(models.Model):
     # Descripción del tipo de medicamento (opcional)
     descripcion = models.TextField(verbose_name="Descripción", null=True, blank=True)
  
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre
 
@@ -211,6 +268,8 @@ class MarcaMedicamento(models.Model):
     # Descripción del tipo de medicamento (opcional)
     descripcion = models.TextField(verbose_name="Descripción", null=True, blank=True)
  
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre
 
@@ -239,6 +298,8 @@ class Medicamento(models.Model):
         verbose_name="Comercial"
     )
     
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return f"{self.nombre} - ({self.tipo})"
 
@@ -259,6 +320,8 @@ class Diagnostico(models.Model):
     # Campo adicional para información relevante sobre el diagnóstico (opcional)
     datos_adicionales = models.TextField(verbose_name="Datos Adicionales", null=True, blank=True)
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
 
@@ -275,6 +338,8 @@ class CategoriaExamen(models.Model):
     # Descripción opcional de la categoría
     descripcion = models.TextField(null=True, blank=True, verbose_name="Descripción de la Categoría")
 
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return self.nombre
 
@@ -300,6 +365,8 @@ class TipoCategoria(models.Model):
     # Valor máximo de referencia para este tipo de examen (ej. 100 mg/dL para glucosa)
     valor_maximo = models.CharField(max_length=100, null=True, blank=True, verbose_name="Valor Máximo")
     
+    activo = models.BooleanField(default=True,verbose_name="Activo")
+    
     def __str__(self):
         return f"{self.categoria_examen} - {self.nombre}"
 
@@ -310,5 +377,26 @@ class TipoCategoria(models.Model):
         verbose_name = "Tipo de Examen"
         verbose_name_plural = "Tipos de Exámenes"
 
+# modelo que alamacena todos los aciones de ingreso, actualizacion, eliminacion d elos usarios que manipulan las opciones de la aplicacion
+class AuditUser(models.Model):
+    TIPOS_ACCIONES = (
+        ('A', 'A'),   # Adicion
+        ('M', 'M'),   # Modificacion
+        ('E', 'E')    # Eliminacion
+    )
+    usuario = models.ForeignKey(User, verbose_name='Usuario',on_delete=models.PROTECT)
+    tabla = models.CharField(max_length=100, verbose_name='Tabla')
+    registroid = models.IntegerField(verbose_name='Registro Id')
+    accion = models.CharField(choices=TIPOS_ACCIONES, max_length=10, verbose_name='Accion')
+    fecha = models.DateField(verbose_name='Fecha')
+    hora = models.TimeField(verbose_name='Hora')
+    estacion = models.CharField(max_length=100, verbose_name='Estacion')
 
+    def __str__(self):
+        return "{} - {} [{}]".format(self.usuario.username, self.tabla, self.accion)
 
+    class Meta:
+        verbose_name = 'Auditoria Usuario '
+        verbose_name_plural = 'Auditorias Usuarios'
+        ordering = ('-fecha', 'hora')
+        
